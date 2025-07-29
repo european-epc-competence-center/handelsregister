@@ -1,0 +1,86 @@
+{
+  "timestamp": 1753799639.9463649,
+  "homepage_analysis": {
+    "search_forms_found": 1,
+    "forms": [
+      {
+        "form_index": 1,
+        "form_name": "globalSearchForm",
+        "form_action": "https://www.unternehmensregister.de/ureg/index.html;jsessionid=A11C26B988C0E2B01798525553429BF5.web01-1",
+        "search_controls": [
+          {
+            "name": "globalSearchForm",
+            "type": "hidden",
+            "id": null
+          },
+          {
+            "name": "globalSearchForm:extendedResearchCompanyName",
+            "type": "text",
+            "id": "globalSearchForm:extendedResearchCompanyName"
+          },
+          {
+            "name": "globalSearchForm:hidden_element_used_for_validation_only",
+            "type": "text",
+            "id": "globalSearchForm:hidden_element_used_for_validation_only"
+          },
+          {
+            "name": "globalsearch",
+            "type": "hidden",
+            "id": "globalsearch"
+          },
+          {
+            "name": "globalSearchForm:btnExecuteSearchOld",
+            "type": "submit",
+            "id": "globalSearchForm:btnExecuteSearchOld"
+          }
+        ]
+      }
+    ]
+  },
+  "search_test": {
+    "success": true,
+    "attempts": [
+      {
+        "form_index": 1,
+        "form_name": "globalSearchForm",
+        "search_field": "globalSearchForm:extendedResearchCompanyName",
+        "success": true,
+        "result_url": "https://www.unternehmensregister.de/ureg/result.html;jsessionid=C6A89668335A6E2E0443543F77C89E29.web04-1",
+        "results_info": {
+          "total_results": 17,
+          "company_entries": [],
+          "result_patterns": []
+        }
+      }
+    ]
+  },
+  "advanced_search": {
+    "success": true,
+    "forms": [
+      {
+        "form_index": 0,
+        "form_name": "loginForm",
+        "search_controls": [
+          "loginForm:username"
+        ]
+      },
+      {
+        "form_index": 1,
+        "form_name": "searchRegisterForm",
+        "search_controls": [
+          "searchRegisterForm:extendedResearchCompanyName",
+          "searchRegisterForm:extendedResearchCompanyLocation",
+          "searchRegisterForm:extendedResearchLegalForm",
+          "searchRegisterForm:extendedResearchCircuitId",
+          "searchRegisterForm:extendedResearchRegisterType",
+          "searchRegisterForm:extendedResearchRegisterNumber",
+          "searchRegisterForm:extendedResearchLanguage",
+          "searchRegisterForm:extendedResearchStartDate",
+          "searchRegisterForm:extendedResearchEndDate"
+        ]
+      }
+    ]
+  },
+  "compatible": true,
+  "recommended_approach": "mechanize with unternehmensregister.de"
+}

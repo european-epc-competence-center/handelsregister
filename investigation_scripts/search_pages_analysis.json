@@ -1,0 +1,23 @@
+{
+  "timestamp": 1753799200.283067,
+  "pages_analyzed": [
+    {
+      "url": "https://www.handelsregister.de/rp_web/normalesuche.xhtml",
+      "name": "Normal Search",
+      "search_forms": [],
+      "can_submit": false,
+      "working_form_index": null,
+      "working_form_name": null,
+      "search_field_name": null
+    },
+    {
+      "url": "https://www.handelsregister.de/rp_web/erweitertesuche.xhtml?cid=2",
+      "name": "Advanced Search",
+      "search_forms": [],
+      "can_submit": false,
+      "working_form_index": null,
+      "working_form_name": null,
+      "search_field_name": null
+    }
+  ]
+}
