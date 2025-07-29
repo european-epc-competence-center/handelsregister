@@ -19,7 +19,7 @@ def test_parse_search_result():
 
 def test_get_results():
     args = argparse.Namespace(
-        debug=False, force=False, schlagwoerter='deutsche bahn', schlagwortOptionen='all')
+        debug=False, force=True, schlagwoerter='deutsche bahn', schlagwortOptionen='all')
     h = HandelsRegisterSelenium(args)
     companies = h.search_company()
     assert len(companies) > 0
