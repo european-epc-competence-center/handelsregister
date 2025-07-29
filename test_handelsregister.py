@@ -1,7 +1,8 @@
 import pytest
 import os
 import json
-from handelsregister_selenium import get_companies_in_searchresults, HandelsRegisterSelenium
+from html_parser import get_companies_in_searchresults
+from handelsregister_core import HandelsRegisterSelenium
 import argparse
 
 

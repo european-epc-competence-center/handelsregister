@@ -8,13 +8,25 @@ This directory contains notes about the handelsregister project.
 - `website_analysis.md` - Analysis of handelsregister.de website structure changes
 - `alternative_solutions.md` - Summary of evaluated alternatives (Selenium solution implemented)
 - `development_environment.md` - **CRITICAL** - Virtual environment setup and dependency management requirements
+- `refactoring.md` - **NEW** - Documentation of the successful project refactoring into modular structure
 
 ## Project Structure
 
-- `handelsregister_selenium.py` - **FULLY WORKING** CLI script using Selenium browser automation
-- `test_handelsregister.py` - Test suite (adapted for selenium script)
-- `requirements.txt` - Python dependencies (selenium-focused)
-- `cache/` - Search result cache directory
+### ✅ **REFACTORED MODULAR STRUCTURE** (Current)
+
+- **`__main__.py`** - CLI entry point and main application execution
+- **`handelsregister_core.py`** - Main business logic and HandelsRegisterSelenium class
+- **`config.py`** - Configuration constants and settings
+- **`html_parser.py`** - HTML parsing and output formatting
+- **`web_automation.py`** - Selenium WebDriver automation
+- **`pdf_processor.py`** - PDF download and content extraction
+- **`test_handelsregister.py`** - Test suite (updated for modular structure)
+- **`requirements.txt`** - Python dependencies (selenium-focused)
+- **`cache/`** - Search result cache directory
+
+### Legacy Files
+
+- `handelsregister_selenium_backup.py` - Backup of original monolithic file (1056 lines)
 
 ## Current Status
 
