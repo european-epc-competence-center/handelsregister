@@ -64,6 +64,10 @@ class HandelsRegisterSelenium:
         # Run headless if not in debug mode
         if not self.args.debug:
             chrome_options.add_argument("--headless")
+            # Set a proper window size for headless mode
+            chrome_options.add_argument("--window-size=1920,1080")
+            # Disable GPU acceleration issues in headless mode
+            chrome_options.add_argument("--disable-gpu")
 
         # Add user agent
         chrome_options.add_argument(
@@ -105,19 +109,32 @@ class HandelsRegisterSelenium:
         if self.args.debug:
             print("Navigating to advanced search...")
 
+        # Longer timeout for headless mode
+        timeout = 15 if not self.args.debug else 10
+        wait = WebDriverWait(self.driver, timeout)
+
         try:
+            # Wait for page to fully load first
+            wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+            time.sleep(3)  # Additional wait for dynamic content
+
             # Wait for and click the advanced search link
-            advanced_search_link = self.wait.until(
+            advanced_search_link = wait.until(
                 EC.element_to_be_clickable((By.LINK_TEXT, "Advanced search"))
             )
 
             if self.args.debug:
                 print("Found 'Advanced search' link, clicking...")
 
+            # Scroll to element to ensure it's visible
+            self.driver.execute_script(
+                "arguments[0].scrollIntoView();", advanced_search_link)
+            time.sleep(1)
+
             advanced_search_link.click()
 
             # Wait for the page to load
-            time.sleep(2)
+            time.sleep(3)
 
             if self.args.debug:
                 print(f"Advanced search page loaded: {self.driver.title}")
@@ -128,7 +145,7 @@ class HandelsRegisterSelenium:
         except TimeoutException:
             # Try German version
             try:
-                advanced_search_link = self.wait.until(
+                advanced_search_link = wait.until(
                     EC.element_to_be_clickable(
                         (By.LINK_TEXT, "Erweiterte Suche"))
                 )
@@ -136,8 +153,13 @@ class HandelsRegisterSelenium:
                 if self.args.debug:
                     print("Found 'Erweiterte Suche' link, clicking...")
 
+                # Scroll to element to ensure it's visible
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView();", advanced_search_link)
+                time.sleep(1)
+
                 advanced_search_link.click()
-                time.sleep(2)
+                time.sleep(3)
 
                 if self.args.debug:
                     print(f"Advanced search page loaded: {self.driver.title}")
@@ -147,6 +169,10 @@ class HandelsRegisterSelenium:
             except TimeoutException:
                 if self.args.debug:
                     print("Could not find advanced search link")
+                    print(f"Page source length: {
+                          len(self.driver.page_source)}")
+                    print(f"Available links: {
+                          [link.text for link in self.driver.find_elements(By.TAG_NAME, 'a')]}")
                 return False
 
     def companyname2cachename(self, companyname):

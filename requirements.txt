@@ -1,4 +1,4 @@
-BeautifulSoup4
-mechanize
+beautifulsoup4
 selenium
 webdriver-manager
+pytest

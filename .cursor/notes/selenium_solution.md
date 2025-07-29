@@ -10,6 +10,48 @@ The original `handelsregister.py` script broke due to handelsregister.de moving 
 **Approach**: Browser automation using Selenium WebDriver
 **Status**: ✅ **WORKING** - Successfully tested with original search query
 
+## Headless Mode Fix ✅
+
+### Problem
+
+Initially, the script worked in debug mode (visible browser) but failed in headless mode with "Could not navigate to advanced search page" error.
+
+### Root Causes
+
+1. **Viewport Size**: Headless Chrome uses small default viewport (800x600), causing element positioning issues
+2. **Timing Issues**: Headless browsers need more time for JavaScript execution and element visibility
+3. **Element Visibility**: Elements not properly rendered without explicit scrolling in headless mode
+
+### Solution Implemented
+
+1. **Proper Viewport**: Added `--window-size=1920,1080` and `--disable-gpu` for headless mode
+2. **Increased Timeouts**: Extended timeout from 10s to 15s for headless mode
+3. **Better Element Waiting**: Added `scrollIntoView()` before clicking elements
+4. **Additional Wait Time**: Added extra 3-second wait for dynamic content loading
+
+### Code Changes
+
+```python
+# Better headless configuration
+if not self.args.debug:
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-gpu")
+
+# Improved navigation with better waiting
+timeout = 15 if not self.args.debug else 10
+wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+time.sleep(3)  # Additional wait for dynamic content
+
+# Ensure element visibility
+self.driver.execute_script("arguments[0].scrollIntoView();", advanced_search_link)
+time.sleep(1)
+```
+
+### Status
+
+✅ **FIXED** - Both debug mode and headless mode now work reliably
+
 ## Test Results
 
 **Search Query**: "european epc competence center"
@@ -87,7 +129,8 @@ python3 handelsregister_selenium.py -s "company name" -so exact
 
 - **Startup**: ~2-3 seconds (driver initialization)
 - **Navigation**: ~3-4 seconds (page loads)
-- **Headless Mode**: Default (use `-d` for visible browser)
+- **Headless Mode**: ✅ **WORKING** - Default mode (use `-d` for visible browser)
+- **Headless Reliability**: Added viewport sizing and better waiting for consistent operation
 - **Cache**: Same performance as original when cached
 
 ## Browser Requirements

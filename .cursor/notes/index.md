@@ -4,35 +4,41 @@ This directory contains notes about the handelsregister project.
 
 ## Files
 
-- `website_analysis.md` - Analysis of handelsregister.de website structure changes and investigation results
-- `alternative_solutions.md` - Alternative approaches for accessing German company register data
-- `selenium_solution.md` - **SUCCESSFUL SOLUTION** - Working Selenium-based implementation
+- `selenium_solution.md` - **WORKING SOLUTION** - Complete Selenium implementation with headless mode support
+- `website_analysis.md` - Analysis of handelsregister.de website structure changes
+- `alternative_solutions.md` - Summary of evaluated alternatives (Selenium solution implemented)
 
 ## Project Structure
 
-- `handelsregister.py` - Main CLI script for searching the German company register
-- `test_handelsregister.py` - Test script
-- `investigate_website.py` - Diagnostic script for investigating website structure
-- `analyze_search_pages.py` - Script to analyze specific search page URLs
-- `navigate_to_search.py` - Script to test navigation to search pages
-- `find_form_endpoints.py` - Script to find form submission endpoints
-- `examine_javascript_interface.py` - Script to examine JavaScript interface (not run)
+- `handelsregister_selenium.py` - **FULLY WORKING** CLI script using Selenium browser automation
+- `test_handelsregister.py` - Test suite (adapted for selenium script)
+- `requirements.txt` - Python dependencies (selenium-focused)
+- `cache/` - Search result cache directory
 
 ## Current Status
 
-✅ **SOLVED** - The original handelsregister.py script was broken due to major changes in the handelsregister.de website structure.
+✅ **FULLY SOLVED** - The handelsregister functionality has been completely restored.
 
-**Solution**: `handelsregister_selenium.py` - A drop-in replacement using Selenium browser automation that successfully works with the modern JavaScript-based website.
+**Solution**: `handelsregister_selenium.py` - Selenium-based script that works with the modern JavaScript-based handelsregister.de website.
 
-**Status**: Fully functional and tested with original search queries.
+**Features**:
 
-## Key Findings
+- ✅ **Debug Mode**: Visible browser for troubleshooting (`-d` flag)
+- ✅ **Headless Mode**: Silent automation (default mode)
+- ✅ **Force Refresh**: Bypass cache (`-f` flag)
+- ✅ **Search Options**: Same CLI as original script
+- ✅ **Caching**: File-based result caching
+- ✅ **Error Handling**: Robust element waiting and fallbacks
 
-- handelsregister.de now uses JSF (JavaServer Faces) with JavaScript navigation
-- Search links point to `#` and require client-side JavaScript execution
-- Direct access to search URLs returns HTTP 400 errors
-- The site requires complex session management and ViewState handling
+**Status**: Production-ready with both debug and headless modes working reliably.
+
+## Key Technical Solutions
+
+- **JavaScript Navigation**: Uses Selenium WebDriver to handle JSF application
+- **Headless Mode**: Proper viewport sizing and element visibility handling
+- **Element Waiting**: Robust WebDriverWait with fallback selectors
+- **Auto-Driver**: webdriver-manager handles chromedriver automatically
 
 ## Alternative Solutions
 
-See `alternative_solutions.md` for potential workarounds and alternative data sources.
+See `alternative_solutions.md` for other approaches that were evaluated (unternehmensregister.de, APIs, other browser automation tools).
