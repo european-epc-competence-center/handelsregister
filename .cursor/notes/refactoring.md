@@ -93,6 +93,29 @@ All functionality has been tested and verified:
 - ✅ Graceful handling of missing selenium dependency
 - ✅ Proper error messages displayed to users
 
+## Recent Improvements
+
+### JSON Output Optimization (December 2024)
+
+- ✅ **Cleaned JSON output**: Removed unnecessary `document_links` attribute from structured JSON output
+- ✅ **Focused data structure**: JSON now only contains essential `basic_info` and `extracted_data` fields
+- ✅ **Improved usability**: Cleaner, more focused JSON output for downstream processing
+
+### PDF Parsing Improvements (January 2025)
+
+- ✅ **Fixed multiline business purpose extraction**: Updated regex patterns to capture complete multiline text instead of truncating
+- ✅ **Enhanced prokura parsing**: Improved handling of "Einzelprokura:" prefix appearing on separate lines
+- ✅ **Corrected management parsing**: Fixed Geschäftsführer field extraction with complete names including titles
+- ✅ **Improved name parsing**: Updated to handle 4-part name format (Title/LastName, FirstName, Location, \*BirthDate)
+- ✅ **Better text normalization**: Enhanced multiline text cleaning while preserving meaningful line breaks
+
+**Technical Details:**
+
+- Updated regex patterns in `config.py` for more flexible multiline matching
+- Enhanced parsing logic in `pdf_processor.py` to handle German legal document structure
+- Added fallback parsing for edge cases and improved error handling
+- Improved text cleaning to preserve document formatting while normalizing whitespace
+
 ## Benefits
 
 1. **Maintainability**: Easier to modify specific functionality without affecting other parts

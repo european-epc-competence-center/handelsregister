@@ -341,8 +341,12 @@ class PDFProcessor:
             purpose_match = re.search(
                 REGEX_PATTERNS['business_purpose'], text, re.DOTALL)
             if purpose_match:
-                data['business_purpose'] = re.sub(
-                    r'\s+', ' ', purpose_match.group(1).strip())
+                # Clean up multiline text by normalizing whitespace but preserving line breaks where meaningful
+                business_purpose = purpose_match.group(1).strip()
+                # Replace multiple spaces/newlines with single spaces, but keep intentional line breaks
+                business_purpose = re.sub(r'\n\s*', '\n', business_purpose)
+                business_purpose = re.sub(r' +', ' ', business_purpose)
+                data['business_purpose'] = business_purpose
 
             # Extract capital
             capital_match = re.search(REGEX_PATTERNS['capital'], text)
@@ -353,42 +357,136 @@ class PDFProcessor:
             vertretung_match = re.search(
                 REGEX_PATTERNS['representation_rules'], text, re.DOTALL)
             if vertretung_match:
-                data['representation_rules'] = re.sub(
-                    r'\s+', ' ', vertretung_match.group(1).strip())
+                representation_rules = vertretung_match.group(1).strip()
+                # Clean up multiline text
+                representation_rules = re.sub(
+                    r'\n\s*', ' ', representation_rules)
+                representation_rules = re.sub(r' +', ' ', representation_rules)
+                data['representation_rules'] = representation_rules
 
             # Extract management
             management_section = re.search(
                 REGEX_PATTERNS['management_section'], text, re.DOTALL)
             if management_section:
                 management_text = management_section.group(1)
+                # Clean up management text
+                management_text = re.sub(r'\n\s*', ' ', management_text)
+
                 # Extract individual managers
                 managers = re.findall(
                     REGEX_PATTERNS['managers'], management_text)
                 if managers:
                     data['management'] = []
                     for manager in managers:
+                        # Combine last name and first name
+                        full_name = f"{manager[0].strip()}, {
+                            manager[1].strip()}"
                         data['management'].append({
-                            'name': manager[0].strip(),
-                            'location': manager[1].strip(),
-                            'birth_date': manager[2].strip()
+                            'name': full_name,
+                            'location': manager[2].strip(),
+                            'birth_date': manager[3].strip()
                         })
+                else:
+                    # If regex doesn't find managers, try to extract manually
+                    # Look for pattern: "Name, Location, *Birth"
+                    management_lines = [
+                        line.strip() for line in management_text.split('\n') if line.strip()]
+                    for line in management_lines:
+                        if '*' in line and ',' in line:
+                            parts = [p.strip() for p in line.split(',')]
+                            if len(parts) >= 4:
+                                # Handle 4-part format: LastName, FirstName, Location, *Birth
+                                full_name = f"{parts[0]}, {parts[1]}"
+                                location = parts[2]
+                                birth_info = parts[3]
+                                if '*' in birth_info:
+                                    birth_date = birth_info.split(
+                                        '*')[1].strip()
+                                    if not data.get('management'):
+                                        data['management'] = []
+                                    data['management'].append({
+                                        'name': full_name,
+                                        'location': location,
+                                        'birth_date': birth_date
+                                    })
+                            elif len(parts) >= 3:
+                                # Fallback to 3-part format for compatibility
+                                name = parts[0]
+                                location = parts[1]
+                                birth_info = parts[2]
+                                if '*' in birth_info:
+                                    birth_date = birth_info.split(
+                                        '*')[1].strip()
+                                    if not data.get('management'):
+                                        data['management'] = []
+                                    data['management'].append({
+                                        'name': name,
+                                        'location': location,
+                                        'birth_date': birth_date
+                                    })
 
             # Extract prokura
             prokura_match = re.search(
                 REGEX_PATTERNS['prokura_section'], text, re.DOTALL)
             if prokura_match:
                 prokura_text = prokura_match.group(1)
+                # Clean up prokura text and handle "Einzelprokura:" prefix
+                prokura_text = re.sub(r'\n\s*', '\n', prokura_text)
+                prokura_text = re.sub(r'Einzelprokura:\s*', '', prokura_text)
+                prokura_text = re.sub(r'Gesamtprokura:\s*', '', prokura_text)
+
                 # Look for individual prokura holders
                 prokura_holders = re.findall(
                     REGEX_PATTERNS['prokura_holders'], prokura_text)
                 if prokura_holders:
                     data['prokura'] = []
                     for holder in prokura_holders:
+                        # Combine title/last name and first name
+                        full_name = f"{holder[0].strip()}, {holder[1].strip()}"
                         data['prokura'].append({
-                            'name': holder[0].strip(),
-                            'location': holder[1].strip(),
-                            'birth_date': holder[2].strip()
+                            'name': full_name,
+                            'location': holder[2].strip(),
+                            'birth_date': holder[3].strip()
                         })
+                else:
+                    # If regex doesn't find holders, try to extract the full prokura text as single entry
+                    prokura_lines = [
+                        line.strip() for line in prokura_text.split('\n') if line.strip()]
+                    if prokura_lines:
+                        # Try to parse manually: "Name, Location, *Birth"
+                        for line in prokura_lines:
+                            if '*' in line and ',' in line:
+                                parts = [p.strip() for p in line.split(',')]
+                                if len(parts) >= 4:
+                                    # Handle 4-part format: TitleLastName, FirstName, Location, *Birth
+                                    full_name = f"{parts[0]}, {parts[1]}"
+                                    location = parts[2]
+                                    birth_info = parts[3]
+                                    if '*' in birth_info:
+                                        birth_date = birth_info.split(
+                                            '*')[1].strip()
+                                        if not data.get('prokura'):
+                                            data['prokura'] = []
+                                        data['prokura'].append({
+                                            'name': full_name,
+                                            'location': location,
+                                            'birth_date': birth_date
+                                        })
+                                elif len(parts) >= 3:
+                                    # Fallback to 3-part format for compatibility
+                                    name = parts[0]
+                                    location = parts[1]
+                                    birth_info = parts[2]
+                                    if '*' in birth_info:
+                                        birth_date = birth_info.split(
+                                            '*')[1].strip()
+                                        if not data.get('prokura'):
+                                            data['prokura'] = []
+                                        data['prokura'].append({
+                                            'name': name,
+                                            'location': location,
+                                            'birth_date': birth_date
+                                        })
 
             # Extract legal form and founding date
             legal_form_match = re.search(REGEX_PATTERNS['legal_form'], text)

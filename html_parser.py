@@ -124,10 +124,6 @@ def output_companies_json(companies):
         if company.get('extracted_data'):
             company_data['extracted_data'] = company['extracted_data']
 
-        # Add document links if available
-        if company.get('document_links'):
-            company_data['document_links'] = company['document_links']
-
         output_data.append(company_data)
 
     return json.dumps(output_data, indent=2, ensure_ascii=False)
