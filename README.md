@@ -1,3 +1,5 @@
+[![Run Python 🐍 tests](https://github.com/european-epc-competence-center/handelsregister/actions/workflows/runtests.yml/badge.svg)](https://github.com/european-epc-competence-center/handelsregister/actions/workflows/runtests.yml)
+
 # Handelsregister CLI
 
 ## Background
