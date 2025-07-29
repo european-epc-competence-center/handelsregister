@@ -31,6 +31,9 @@ This directory contains notes about the handelsregister project.
   - Tests against Python 3.8, 3.9, 3.10, 3.11
   - Installs Chrome/Chromium for Selenium tests
   - Uses `pytest -v` to run all tests
+- **`test_handelsregister.py`** - ✅ All tests passing (syntax error fixed)
+  - Fixed multi-line f-string compatibility issue for older Python versions
+  - 3 tests: parse_search_result, get_results, pdf_download_european_epc
 
 ### Legacy Files
 
