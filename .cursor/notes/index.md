@@ -24,6 +24,14 @@ This directory contains notes about the handelsregister project.
 - **`requirements.txt`** - Python dependencies (selenium-focused)
 - **`cache/`** - Search result cache directory
 
+### CI/CD & Testing
+
+- **`.github/workflows/runtests.yml`** - GitHub Actions workflow for automated testing
+  - Runs on commits to main branch and pull requests
+  - Tests against Python 3.8, 3.9, 3.10, 3.11
+  - Installs Chrome/Chromium for Selenium tests
+  - Uses `pytest -v` to run all tests
+
 ### Legacy Files
 
 - `handelsregister_selenium_backup.py` - Backup of original monolithic file (1056 lines)

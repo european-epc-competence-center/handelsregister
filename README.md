@@ -1,6 +1,4 @@
-# Handelsregister CLI - English Version
-
-> **✅ WORKING SOLUTION**: A command-line interface for searching the German company register (Handelsregister) using automated browser interaction with Selenium.
+# Handelsregister CLI
 
 ## Background
 
@@ -32,9 +30,11 @@ This project is based on the original [bundesAPI/handelsregister](https://github
 
 ```bash
 # Clone this repository
-git clone https://github.com/your-username/handelsregister.git
+git clone https://github.com/european-epc-competence-center/handelsregister.git
 cd handelsregister
 
+pyhton -m venv .venv
+source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
@@ -53,22 +53,12 @@ All required packages are listed in `requirements.txt`:
 
 ## Quick Start
 
-### Basic Company Search
+### Company Search
 
 ```bash
 # Search for a company (basic)
-python3 handelsregister_selenium.py -s "European EPC Competence Center"
+python handelsregister_selenium.py -s "European EPC Competence Center"
 
-# Search with exact company name matching
-python3 handelsregister_selenium.py -s "European EPC Competence Center" -so exact
-
-# Search for companies containing any of the keywords
-python3 handelsregister_selenium.py -s "European EPC Competence Center" -so min
-```
-
-### Advanced Features
-
-```bash
 # Enable PDF document processing (downloads and extracts company data)
 python3 handelsregister_selenium.py -s "European EPC Competence Center" -pd
 
@@ -102,24 +92,6 @@ python3 handelsregister_selenium.py -s "European EPC Competence Center" -pd
 
 **Sample Output with PDF Processing**:
 
-```json
-{
-  "search_results": [
-    {
-      "name": "European EPC Competence Center",
-      "registration": "Köln HRB 123456",
-      "address": "Sample Street 1, 12345 Köln"
-    }
-  ],
-  "pdf_data": {
-    "hrb_numbers": ["123456"],
-    "addresses": ["Sample Street 1, 12345 Köln"],
-    "share_capital": "50000000 EUR",
-    "management": ["John Doe (Vorstand)"]
-  }
-}
-```
-
 ## Command Line Options
 
 | Option                 | Short | Description                                            |
@@ -136,26 +108,6 @@ python3 handelsregister_selenium.py -s "European EPC Competence Center" -pd
 - **`all`** (default): Company name must contain ALL search keywords
 - **`min`**: Company name must contain AT LEAST ONE search keyword
 - **`exact`**: Search for exact company name match
-
-## Technical Details
-
-### Browser Automation
-
-- Uses Selenium WebDriver with Chrome/Chromium
-- Automatic ChromeDriver management via `webdriver-manager`
-- Headless mode by default, visible mode available for debugging
-- Robust element waiting and error handling
-
-### Caching System
-
-- Results cached in `cache/` directory
-- Cache key based on search parameters
-- Use `-f` flag to force fresh data
-
-### Rate Limiting
-
-- Built-in delays to respect server limits
-- Complies with handelsregister.de usage policy (max 60 requests/hour)
 
 ## Testing
 
