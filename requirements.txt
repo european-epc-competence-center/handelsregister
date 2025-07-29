@@ -2,3 +2,5 @@ beautifulsoup4
 selenium
 webdriver-manager
 pytest
+PyPDF2
+requests

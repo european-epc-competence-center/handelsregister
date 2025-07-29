@@ -1,16 +1,99 @@
-# Selenium-Based Handelsregister Solution
+# Selenium Solution
 
-## Problem Solved ✅
+**FULLY WORKING** - Selenium-based handelsregister.de automation
 
-The original `handelsregister.py` script broke due to handelsregister.de moving to a JavaScript-based JSF application. The new `handelsregister_selenium.py` script successfully replaces mechanize with Selenium browser automation.
+## Features
 
-## Solution Overview
+- ✅ **Debug Mode**: Visible browser for troubleshooting (`-d` flag)
+- ✅ **Headless Mode**: Silent automation (default mode)
+- ✅ **Force Refresh**: Bypass cache (`-f` flag)
+- ✅ **Search Options**: Same CLI as original script
+- ✅ **Caching**: File-based result caching
+- ✅ **Error Handling**: Robust element waiting and fallbacks
+- ✅ **PDF Document Download**: Download and extract company information from PDF documents (`-pd` flag)
 
-**File**: `handelsregister_selenium.py`
-**Approach**: Browser automation using Selenium WebDriver
-**Status**: ✅ **WORKING** - Successfully tested with original search query
+## PDF Document Processing
 
-## Headless Mode Fix ✅
+The new PDF functionality (`-pd` or `--download-pdfs` flag) adds comprehensive document processing:
+
+### What it does:
+
+1. **Document Link Extraction**: Finds all document download links (AD, CD, HD, etc.) in search results
+2. **PDF Download**: Clicks on 'AD' (Aktuelle Daten/Current Data) document links to download PDFs
+3. **Text Extraction**: Uses PyPDF2 to extract text content from downloaded PDFs
+4. **Structured Parsing**: Parses PDF text into structured JSON format with fields like:
+   - Company number (HRB number)
+   - Number of entries
+   - Company name
+   - Location and business address
+   - Business purpose
+   - Capital information
+   - Management details
+   - Prokura holders
+   - Legal form and founding date
+   - Last entry date
+
+### Output Format:
+
+When PDF processing is enabled, the script outputs structured JSON instead of the regular text format:
+
+```json
+[
+  {
+    "basic_info": {
+      "name": "Company Name",
+      "court": "Court Info",
+      "state": "State",
+      "status": "Status",
+      "documents": "Available Documents",
+      "history": []
+    },
+    "extracted_data": {
+      "company_number": "HRB 61026",
+      "number_of_entries": 6,
+      "company_name": "European EPC Competence Center GmbH",
+      "location": "Köln",
+      "business_address": "Stolberger Straße 108a, 50933 Köln",
+      "business_purpose": "...",
+      "capital": "300.000,00 EUR",
+      "representation_rules": "...",
+      "management": [...],
+      "prokura": [...],
+      "legal_form": "Gesellschaft mit beschränkter Haftung",
+      "founding_date": "16.07.2007",
+      "last_entry_date": "24.03.2025"
+    },
+    "document_links": [...]
+  }
+]
+```
+
+### Dependencies:
+
+- `PyPDF2` - For PDF text extraction
+- `requests` - For downloading PDF files
+
+### Usage:
+
+```bash
+python handelsregister_selenium.py -s "European EPC Competence Center" -pd
+```
+
+### Important Notes:
+
+- Only processes 'AD' (Aktuelle Daten) documents currently
+- PDFs are saved to the current working directory with naming pattern: `CompanyName_AD.pdf`
+- Cache is bypassed when PDF download is enabled to ensure fresh document access
+- Requires active browser session for clicking document links
+
+## Technical Implementation
+
+- **JavaScript Handling**: Executes onclick JavaScript to trigger PDF downloads
+- **Session Management**: Transfers browser cookies to requests session for authenticated downloads
+- **Error Handling**: Robust error handling for PDF processing failures
+- **Text Parsing**: Comprehensive regex patterns for extracting structured data from German legal documents
+
+## Browser Automation Details
 
 ### Problem
 
@@ -65,6 +148,26 @@ time.sleep(1)
 - ✅ **Found 1 company**: "European EPC Competence Center GmbH"
 - ✅ Extracted all details: court, state, status, etc.
 
+## Test Suite Results
+
+**All tests passing with EECC values** ✅
+
+**EECC Company Data**:
+
+- Company name: "European EPC Competence Center GmbH"
+- Company number: "HRB 61026"
+- Location: "Köln"
+- Address: "Stolberger Straße 108a, 50933 Köln"
+- Capital: "300.000,00 EUR"
+- Legal form: "Gesellschaft mit beschränkter Haftung"
+- Founded: "16.07.2007"
+
+**Test Functions**:
+
+- `test_parse_search_result`: HTML parsing (static data) ✅
+- `test_get_results`: Search functionality with eecc ✅
+- `test_pdf_download_european_epc`: PDF download and data extraction ✅
+
 ## Technical Implementation
 
 ### Key Improvements
@@ -98,16 +201,16 @@ pip install selenium webdriver-manager beautifulsoup4
 
 ```bash
 # Basic search
-python3 handelsregister_selenium.py -s "company name"
+python3 handelsregister_selenium.py -s "European EPC Competence Center"
 
 # With debug mode (shows browser)
-python3 handelsregister_selenium.py -s "company name" -d
+python3 handelsregister_selenium.py -s "European EPC Competence Center" -d
 
 # Force fresh search (bypass cache)
-python3 handelsregister_selenium.py -s "company name" -f
+python3 handelsregister_selenium.py -s "European EPC Competence Center" -f
 
 # Search options
-python3 handelsregister_selenium.py -s "company name" -so exact
+python3 handelsregister_selenium.py -s "European EPC Competence Center" -so exact
 ```
 
 ## Migration from Original Script

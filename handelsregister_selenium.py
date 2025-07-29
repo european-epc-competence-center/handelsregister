@@ -10,6 +10,9 @@ import sys
 import pathlib
 import time
 import json
+import re
+import os
+import requests
 from bs4 import BeautifulSoup
 
 try:
@@ -24,6 +27,12 @@ try:
     SELENIUM_AVAILABLE = True
 except ImportError:
     SELENIUM_AVAILABLE = False
+
+try:
+    import PyPDF2
+    PDF_AVAILABLE = True
+except ImportError:
+    PDF_AVAILABLE = False
 
 # Dictionaries to map arguments to values (same as original)
 schlagwortOptionen = {
@@ -41,6 +50,11 @@ class HandelsRegisterSelenium:
                 "You'll also need to install a browser driver (e.g., chromedriver)"
             )
 
+        if args.download_pdfs and not PDF_AVAILABLE:
+            raise ImportError(
+                "PyPDF2 is required for PDF processing. Install with: pip install PyPDF2"
+            )
+
         self.args = args
         self.driver = None
         self.wait = None
@@ -51,6 +65,17 @@ class HandelsRegisterSelenium:
     def setup_driver(self):
         """Set up the Selenium WebDriver"""
         chrome_options = Options()
+
+        # Configure download directory to current working directory
+        download_dir = os.path.abspath(".")
+        prefs = {
+            "download.default_directory": download_dir,
+            "download.prompt_for_download": False,
+            "download.directory_upgrade": True,
+            "safebrowsing.enabled": False,
+            "plugins.always_open_pdf_externally": True  # Don't open PDF in browser
+        }
+        chrome_options.add_experimental_option("prefs", prefs)
 
         # Add options for better automation
         chrome_options.add_argument("--no-sandbox")
@@ -183,7 +208,7 @@ class HandelsRegisterSelenium:
         """Perform the company search using Selenium"""
         cachename = self.companyname2cachename(self.args.schlagwoerter)
 
-        if not self.args.force and cachename.exists():
+        if not self.args.force and cachename.exists() and not self.args.download_pdfs:
             with open(cachename, "r") as f:
                 html = f.read()
                 print(f"Return cached content for {self.args.schlagwoerter}")
@@ -224,7 +249,22 @@ class HandelsRegisterSelenium:
             with open(cachename, "w") as f:
                 f.write(html)
 
-            return get_companies_in_searchresults(html)
+            # Parse companies from results
+            companies = get_companies_in_searchresults(html)
+
+            # Download documents if requested
+            if self.args.download_pdfs and companies:
+                print(f"PDF download enabled, processing {
+                      len(companies)} companies...")
+                for i, company in enumerate(companies):
+                    print(f"Processing company {
+                          i+1}/{len(companies)}: {company.get('name', 'Unknown')}")
+                    processed_company = self.download_company_documents(
+                        company)
+                    if processed_company:  # Only update if processing succeeded
+                        companies[i] = processed_company
+
+            return companies
 
         finally:
             if self.driver:
@@ -415,6 +455,397 @@ class HandelsRegisterSelenium:
                 print(f"Error submitting form: {e}")
             return False
 
+    def download_company_documents(self, company):
+        """Download PDF documents for a company and extract information"""
+        if not PDF_AVAILABLE:
+            print("Warning: PyPDF2 not available, skipping document processing")
+            return company
+
+        if not company.get('document_links'):
+            print(f"No document links found for {
+                  company.get('name', 'Unknown')}")
+            return company
+
+        company['extracted_data'] = {}
+
+        for doc_link in company['document_links']:
+            # Only process 'AD' documents (Aktuelle Daten / Current Data)
+            if doc_link['type'] == 'AD':
+                try:
+                    print(f"Processing {doc_link['type']} document for {
+                          company.get('name', 'Unknown')}")
+                    pdf_path = self.download_pdf_document(doc_link, company)
+                    if pdf_path:
+                        extracted_data = self.extract_pdf_content(pdf_path)
+                        if extracted_data:
+                            company['extracted_data'] = extracted_data
+                            print(f"Successfully extracted data from {
+                                  doc_link['type']} document")
+                        break  # Stop after first successful AD document
+                except Exception as e:
+                    print(f"Error processing document {doc_link['type']}: {e}")
+                    continue
+
+                return company
+
+    def download_pdf_document(self, doc_link, company):
+        """Download a PDF document by clicking the link"""
+        try:
+            # Find the document link on the current page
+            link_element = self.driver.find_element(By.ID, doc_link['id'])
+
+            # Execute the onclick JavaScript to trigger the download
+            if doc_link['onclick']:
+                onclick = doc_link['onclick']
+
+                if self.args.debug:
+                    print(f"Executing onclick: {onclick[:100]}...")
+
+                # Store current URL to detect navigation
+                current_url_before = self.driver.current_url
+
+                # Store page source before to detect changes
+                page_source_before = self.driver.page_source[:1000]
+
+                # Execute the onclick JavaScript
+                self.driver.execute_script(onclick)
+
+                # Wait for potential navigation or content change
+                time.sleep(5)
+
+                # Check if URL changed (form submission likely caused navigation)
+                current_url_after = self.driver.current_url
+                page_source_after = self.driver.page_source[:1000]
+
+                if self.args.debug:
+                    print(f"URL before: {current_url_before}")
+                    print(f"URL after: {current_url_after}")
+                    print(f"Page title: {self.driver.title}")
+                    print(f"Page content changed: {
+                          page_source_before != page_source_after}")
+
+                    # Check for PDF-related content in page
+                    if 'pdf' in self.driver.page_source.lower():
+                        print("Found 'pdf' text in page source")
+                    if '%PDF' in self.driver.page_source:
+                        print("Found PDF magic bytes in page source!")
+
+                    # Check response headers if possible
+                    try:
+                        logs = self.driver.get_log('performance')
+                        for log in logs[-5:]:  # Check last 5 network events
+                            message = json.loads(log['message'])
+                            if 'Network.responseReceived' in message.get('method', ''):
+                                response = message.get(
+                                    'params', {}).get('response', {})
+                                headers = response.get('headers', {})
+                                content_type = headers.get(
+                                    'content-type', headers.get('Content-Type', ''))
+                                if 'pdf' in content_type.lower():
+                                    print(f"Found PDF response: {
+                                          content_type}")
+                                    print(f"Response URL: {
+                                          response.get('url', '')}")
+                    except:
+                        pass
+
+                # Check if we're now on a PDF page
+                if current_url_after.endswith('.pdf') or 'pdf' in current_url_after.lower():
+                    return self.download_pdf_from_url(current_url_after, doc_link['type'], company)
+
+                # Look for PDF content in various ways
+                pdf_url = None
+
+                # Method 1: Look for PDF links or iframes
+                pdf_elements = self.driver.find_elements(
+                    By.XPATH, "//a[contains(@href, '.pdf')] | //iframe[contains(@src, '.pdf')] | //embed[contains(@src, '.pdf')]")
+                if pdf_elements:
+                    pdf_url = pdf_elements[0].get_attribute(
+                        'href') or pdf_elements[0].get_attribute('src')
+                    if self.args.debug:
+                        print(f"Found PDF element with URL: {pdf_url}")
+
+                # Method 2: Check if content-type indicates PDF
+                if not pdf_url:
+                    try:
+                        # Try to detect if the current page is serving PDF content
+                        page_source = self.driver.page_source
+                        if 'application/pdf' in page_source or '%PDF' in page_source:
+                            pdf_url = current_url_after
+                            if self.args.debug:
+                                print(
+                                    "Current page appears to be serving PDF content")
+                    except:
+                        pass
+
+                # Method 3: Look for download buttons or new windows
+                if not pdf_url:
+                    try:
+                        # Look for elements that might trigger PDF download
+                        download_elements = self.driver.find_elements(
+                            By.XPATH, "//a[contains(text(), 'Download') or contains(@title, 'PDF') or contains(@class, 'download')]")
+                        if download_elements:
+                            download_elements[0].click()
+                            time.sleep(3)
+                            # Check again for PDF
+                            current_url_final = self.driver.current_url
+                            if current_url_final.endswith('.pdf') or 'pdf' in current_url_final.lower():
+                                pdf_url = current_url_final
+                    except:
+                        pass
+
+                # Method 4: Check for new browser windows/tabs
+                if not pdf_url and len(self.driver.window_handles) > 1:
+                    try:
+                        # Switch to new window
+                        original_window = self.driver.current_window_handle
+                        for window_handle in self.driver.window_handles:
+                            if window_handle != original_window:
+                                self.driver.switch_to.window(window_handle)
+                                new_url = self.driver.current_url
+                                if new_url.endswith('.pdf') or 'pdf' in new_url.lower():
+                                    pdf_url = new_url
+                                    break
+                                self.driver.close()  # Close if not PDF
+                        self.driver.switch_to.window(original_window)
+                    except:
+                        pass
+
+                if pdf_url:
+                    return self.download_pdf_from_url(pdf_url, doc_link['type'], company)
+                else:
+                    # Method 5: Wait for file download in current directory
+                    if self.args.debug:
+                        print("Checking for downloaded files in current directory...")
+
+                    downloaded_file = self.wait_for_download(company)
+                    if downloaded_file:
+                        if self.args.debug:
+                            print(f"Found downloaded file: {downloaded_file}")
+                        return downloaded_file
+
+                    if self.args.debug:
+                        print("Could not find PDF download after clicking link")
+                        print("Page source snippet:",
+                              self.driver.page_source[:500])
+                    return None
+
+        except Exception as e:
+            print(f"Error downloading document: {e}")
+            if self.args.debug:
+                import traceback
+                traceback.print_exc()
+            return None
+
+    def download_pdf_from_url(self, pdf_url, doc_type, company):
+        """Download PDF from a direct URL"""
+        try:
+            # Create filename
+            company_name = company.get('name', 'Unknown').replace(
+                ' ', '_').replace('/', '_')
+            filename = f"{company_name}_{doc_type}.pdf"
+
+            # Get cookies from selenium driver for the request
+            cookies = self.driver.get_cookies()
+            session = requests.Session()
+            for cookie in cookies:
+                session.cookies.set(cookie['name'], cookie['value'])
+
+            # Download the PDF
+            response = session.get(pdf_url)
+            response.raise_for_status()
+
+            # Save to current directory
+            with open(filename, 'wb') as f:
+                f.write(response.content)
+
+            print(f"Downloaded PDF: {filename}")
+            return filename
+
+        except Exception as e:
+            print(f"Error downloading PDF from URL: {e}")
+            return None
+
+    def wait_for_download(self, company, timeout=15):
+        """Wait for a file to be downloaded and return the filename"""
+        import glob
+        company_name = company.get('name', 'Unknown').replace(
+            ' ', '_').replace('/', '_')
+
+        # Get list of PDF files before (to detect new downloads)
+        pdf_files_before = set(
+            [f for f in os.listdir('.') if f.endswith('.pdf')])
+
+        # Wait for new files to appear
+        for i in range(timeout):
+            time.sleep(1)
+            pdf_files_after = set(
+                [f for f in os.listdir('.') if f.endswith('.pdf')])
+            new_pdf_files = pdf_files_after - pdf_files_before
+
+            # Look for new PDF files
+            if new_pdf_files:
+                downloaded_file = list(new_pdf_files)[0]  # Get first new PDF
+                if self.args.debug:
+                    print(f"Detected new PDF file: {downloaded_file}")
+
+                # Optionally rename to our naming convention
+                target_name = f"{company_name}_AD.pdf"
+                try:
+                    if downloaded_file != target_name and not os.path.exists(target_name):
+                        os.rename(downloaded_file, target_name)
+                        return target_name
+                except:
+                    pass
+                return downloaded_file
+
+            # Also check for .crdownload files (Chrome partial downloads)
+            all_files = set(os.listdir('.'))
+            partial_files = [f for f in all_files if f.endswith('.crdownload')]
+            if partial_files and i < timeout - 2:  # Still waiting for download to complete
+                if self.args.debug and i % 5 == 0:  # Print every 5 seconds
+                    print(
+                        f"Waiting for download to complete... ({i+1}/{timeout})")
+                continue
+
+        # Final check for any PDF files that might match the company
+        all_pdfs = [f for f in os.listdir('.') if f.endswith('.pdf')]
+        for pdf_file in all_pdfs:
+            # Check if this might be our company's PDF (contains HRB number or similar pattern)
+            if 'HRB' in pdf_file and 'AD' in pdf_file:
+                file_time = os.path.getmtime(pdf_file)
+                current_time = time.time()
+                # If file was created in the last 30 seconds, likely our download
+                if current_time - file_time < 30:
+                    if self.args.debug:
+                        print(
+                            f"Found recent PDF file that might be ours: {pdf_file}")
+                    return pdf_file
+
+        return None
+
+    def extract_pdf_content(self, pdf_path):
+        """Extract text content from PDF and parse company information"""
+        try:
+            with open(pdf_path, 'rb') as file:
+                pdf_reader = PyPDF2.PdfReader(file)
+
+                # Extract text from all pages
+                text = ""
+                for page in pdf_reader.pages:
+                    text += page.extract_text()
+
+                # Parse the extracted text into structured data
+                return self.parse_company_data(text)
+
+        except Exception as e:
+            print(f"Error extracting PDF content: {e}")
+            return None
+
+    def parse_company_data(self, text):
+        """Parse extracted PDF text into structured JSON data"""
+        data = {}
+
+        try:
+            # Extract company number (HRB number)
+            hrb_match = re.search(r'HRB\s*(\d+)', text)
+            if hrb_match:
+                data['company_number'] = f"HRB {hrb_match.group(1)}"
+
+            # Extract number of entries
+            entries_match = re.search(
+                r'Anzahl der bisherigen Eintragungen:\s*(\d+)', text)
+            if entries_match:
+                data['number_of_entries'] = int(entries_match.group(1))
+
+            # Extract company name (look for the actual company name, not just after "Firma:")
+            firma_match = re.search(r'2\.\s*a\)\s*Firma:\s*([^\n]+)', text)
+            if firma_match:
+                data['company_name'] = firma_match.group(1).strip()
+
+            # Extract location and address
+            sitz_match = re.search(r'Sitz[^:]*:\s*([^\n]+)', text)
+            if sitz_match:
+                data['location'] = sitz_match.group(1).strip()
+
+            # Extract business address
+            address_match = re.search(r'Geschäftsanschrift:\s*([^\n]+)', text)
+            if address_match:
+                data['business_address'] = address_match.group(1).strip()
+
+            # Extract business purpose
+            purpose_match = re.search(
+                r'Gegenstand des Unternehmens:\s*([^0-9]+?)(?=\n\d+\.|\n[A-Z]|\Z)', text, re.DOTALL)
+            if purpose_match:
+                data['business_purpose'] = re.sub(
+                    r'\s+', ' ', purpose_match.group(1).strip())
+
+            # Extract capital
+            capital_match = re.search(
+                r'Grund- oder Stammkapital:\s*([^\n]+)', text)
+            if capital_match:
+                data['capital'] = capital_match.group(1).strip()
+
+            # Extract representation rules
+            vertretung_match = re.search(
+                r'Allgemeine Vertretungsregelung:\s*([^b\)]+)', text, re.DOTALL)
+            if vertretung_match:
+                data['representation_rules'] = re.sub(
+                    r'\s+', ' ', vertretung_match.group(1).strip())
+
+            # Extract management
+            management_section = re.search(
+                r'Geschäftsführer:([^0-9]+?)(?=\n\d+\.|\n[A-Z]|\Z)', text, re.DOTALL)
+            if management_section:
+                management_text = management_section.group(1)
+                # Extract individual managers
+                managers = re.findall(
+                    r'([^,\n]+),\s*([^,\n]+),\s*\*(\d{2}\.\d{2}\.\d{4})', management_text)
+                if managers:
+                    data['management'] = []
+                    for manager in managers:
+                        data['management'].append({
+                            'name': manager[0].strip(),
+                            'location': manager[1].strip(),
+                            'birth_date': manager[2].strip()
+                        })
+
+            # Extract prokura
+            prokura_match = re.search(
+                r'Prokura:\s*([^0-9]+?)(?=\n\d+\.|\n[A-Z]|\Z)', text, re.DOTALL)
+            if prokura_match:
+                prokura_text = prokura_match.group(1)
+                # Look for individual prokura holders
+                prokura_holders = re.findall(
+                    r'([^,\n]+),\s*([^,\n]+),\s*\*(\d{2}\.\d{2}\.\d{4})', prokura_text)
+                if prokura_holders:
+                    data['prokura'] = []
+                    for holder in prokura_holders:
+                        data['prokura'].append({
+                            'name': holder[0].strip(),
+                            'location': holder[1].strip(),
+                            'birth_date': holder[2].strip()
+                        })
+
+            # Extract legal form and founding date
+            legal_form_match = re.search(
+                r'Gesellschaft mit beschränkter Haftung\s*Gesellschaftsvertrag vom\s*(\d{2}\.\d{2}\.\d{4})', text)
+            if legal_form_match:
+                data['legal_form'] = 'Gesellschaft mit beschränkter Haftung'
+                data['founding_date'] = legal_form_match.group(1)
+
+            # Extract last entry date
+            last_entry_match = re.search(
+                r'Tag der letzten Eintragung:\s*(\d{2}\.\d{2}\.\d{4})', text)
+            if last_entry_match:
+                data['last_entry_date'] = last_entry_match.group(1)
+
+            return data
+
+        except Exception as e:
+            print(f"Error parsing company data: {e}")
+            return {}
+
 
 def get_companies_in_searchresults(html):
     """Parse companies from search results HTML (same as original)"""
@@ -465,8 +896,24 @@ def parse_result(result):
             'state': cells[3] if len(cells) > 3 else '',
             'status': cells[4] if len(cells) > 4 else '',
             'documents': cells[5] if len(cells) > 5 else '',
-            'history': []
+            'history': [],
+            'document_links': []
         }
+
+        # Extract document download links
+        document_links = result.find_all('a', class_='dokumentList')
+        for link in document_links:
+            if link.get('id'):
+                # Extract document type from the span text
+                span = link.find('span')
+                doc_type = span.text.strip() if span else 'Unknown'
+                onclick_value = link.get('onclick', '')
+
+                company_info['document_links'].append({
+                    'id': link.get('id'),
+                    'type': doc_type,
+                    'onclick': onclick_value
+                })
 
         # Parse history if available
         hist_start = 8
@@ -491,6 +938,43 @@ def pr_company_info(company):
     for name, loc in company.get('history', []):
         print(f'  {name} {loc}')
 
+    # Print extracted PDF data if available
+    if company.get('extracted_data'):
+        print('extracted_data:')
+        print(json.dumps(company['extracted_data'],
+              indent=2, ensure_ascii=False))
+
+
+def output_companies_json(companies):
+    """Output companies with extracted data as JSON"""
+    output_data = []
+    for company in companies:
+        if company is None:  # Skip None companies
+            continue
+
+        company_data = {
+            'basic_info': {
+                'name': company.get('name', ''),
+                'court': company.get('court', ''),
+                'state': company.get('state', ''),
+                'status': company.get('status', ''),
+                'documents': company.get('documents', ''),
+                'history': company.get('history', [])
+            }
+        }
+
+        # Add extracted data if available
+        if company.get('extracted_data'):
+            company_data['extracted_data'] = company['extracted_data']
+
+        # Add document links if available
+        if company.get('document_links'):
+            company_data['document_links'] = company['document_links']
+
+        output_data.append(company_data)
+
+    return json.dumps(output_data, indent=2, ensure_ascii=False)
+
 
 def parse_args():
     """Parse command line arguments (same as original)"""
@@ -511,13 +995,18 @@ def parse_args():
         "-s", "--schlagwoerter",
         help="Search for the provided keywords",
         required=True,
-        default="Gasag AG"
+        default="European EPC Competence Center"
     )
     parser.add_argument(
         "-so", "--schlagwortOptionen",
         help="Keyword options: all=contain all keywords; min=contain at least one keyword; exact=contain the exact company name.",
         choices=["all", "min", "exact"],
         default="all"
+    )
+    parser.add_argument(
+        "-pd", "--download-pdfs",
+        help="Download and extract information from company PDF documents",
+        action="store_true"
     )
 
     args = parser.parse_args()
@@ -543,9 +1032,18 @@ if __name__ == "__main__":
 
         if companies:
             print(f"Found {len(companies)} companies:")
-            for company in companies:
-                pr_company_info(company)
-                print("-" * 40)
+
+            if args.download_pdfs:
+                # Output structured JSON with extracted data
+                print("\n" + "="*60)
+                print("STRUCTURED JSON OUTPUT:")
+                print("="*60)
+                print(output_companies_json(companies))
+            else:
+                # Regular output
+                for company in companies:
+                    pr_company_info(company)
+                    print("-" * 40)
         else:
             print("No companies found")
 

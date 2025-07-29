@@ -1,4 +1,6 @@
 import pytest
+import os
+import json
 from handelsregister_selenium import get_companies_in_searchresults, HandelsRegisterSelenium
 import argparse
 
@@ -13,13 +15,100 @@ def test_parse_search_result():
         'state': 'Berlin',
         'status': 'currently registered',
         'documents': 'ADCDHDDKUTVÖSI',
-        'history': [('1.) Gasag Berliner Gaswerke Aktiengesellschaft', '1.) Berlin')]
+        'history': [('1.) Gasag Berliner Gaswerke Aktiengesellschaft', '1.) Berlin')],
+        'document_links': [
+            {'id': 'ergebnissForm:selectedSuchErgebnisFormTable:0:j_idt161:0:fade',
+                'type': 'AD', 'onclick': ''},
+            {'id': 'ergebnissForm:selectedSuchErgebnisFormTable:0:j_idt161:1:fade',
+                'type': 'CD', 'onclick': ''},
+            {'id': 'ergebnissForm:selectedSuchErgebnisFormTable:0:j_idt161:2:fade',
+                'type': 'HD', 'onclick': ''},
+            {'id': 'ergebnissForm:selectedSuchErgebnisFormTable:0:j_idt161:3:fade',
+                'type': 'DK', 'onclick': ''},
+            {'id': 'ergebnissForm:selectedSuchErgebnisFormTable:0:j_idt161:4:fade',
+                'type': 'UT', 'onclick': ''},
+            {'id': 'ergebnissForm:selectedSuchErgebnisFormTable:0:j_idt161:5:fade',
+                'type': 'VÖ', 'onclick': ''},
+            {'id': 'ergebnissForm:selectedSuchErgebnisFormTable:0:j_idt161:6:fade',
+                'type': 'SI', 'onclick': ''}
+        ]
     },]
 
 
 def test_get_results():
     args = argparse.Namespace(
-        debug=False, force=True, schlagwoerter='deutsche bahn', schlagwortOptionen='all')
+        debug=False, force=True, schlagwoerter='european epc competence center', schlagwortOptionen='all', download_pdfs=False)
     h = HandelsRegisterSelenium(args)
     companies = h.search_company()
     assert len(companies) > 0
+
+
+def test_pdf_download_european_epc():
+    """Test PDF download functionality with European EPC Competence Center"""
+    # Clean up any existing PDF files before test
+    pdf_files_before = [f for f in os.listdir(
+        '.') if f.endswith('.pdf') and 'European_EPC' in f]
+    for pdf_file in pdf_files_before:
+        try:
+            os.remove(pdf_file)
+        except:
+            pass
+
+    # Create args with PDF download enabled
+    args = argparse.Namespace(
+        debug=False,
+        force=True,
+        schlagwoerter='european epc competence center',
+        schlagwortOptionen='all',
+        download_pdfs=True
+    )
+
+    # Execute search with PDF download
+    h = HandelsRegisterSelenium(args)
+    companies = h.search_company()
+
+    # Verify we found companies
+    assert len(companies) > 0, "No companies found for European EPC search"
+
+    # Check if any company has extracted data
+    companies_with_data = [c for c in companies if c.get('extracted_data')]
+
+    if companies_with_data:
+        company = companies_with_data[0]
+        extracted_data = company['extracted_data']
+
+        # Verify the extracted data structure contains expected fields
+        expected_fields = ['company_number', 'company_name', 'location']
+        for field in expected_fields:
+            assert field in extracted_data, f"Missing expected field: {field}"
+
+        # Print the extracted data for verification
+        print("\n" + "="*50)
+        print("EXTRACTED COMPANY DATA:")
+        print("="*50)
+        print(json.dumps(extracted_data, indent=2, ensure_ascii=False))
+        print("="*50)
+
+        # Verify specific expected values for European EPC if found
+        if 'European EPC' in extracted_data.get('company_name', ''):
+            assert 'HRB' in extracted_data.get(
+                'company_number', ''), "Company number should contain HRB"
+            assert 'Köln' in extracted_data.get(
+                'location', ''), "Location should be Köln"
+
+    # Check that at least one PDF file was downloaded
+    pdf_files_after = [f for f in os.listdir('.') if f.endswith('.pdf')]
+    assert len(pdf_files_after) > len(
+        pdf_files_before), "No PDF files were downloaded"
+
+    print(f"\nPDF files downloaded: {
+          [f for f in pdf_files_after if f not in pdf_files_before]}")
+
+    # Clean up downloaded PDF files after test
+    for pdf_file in pdf_files_after:
+        if pdf_file not in pdf_files_before:
+            try:
+                os.remove(pdf_file)
+                print(f"Cleaned up: {pdf_file}")
+            except:
+                pass

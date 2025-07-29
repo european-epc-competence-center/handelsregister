@@ -4,9 +4,10 @@ This directory contains notes about the handelsregister project.
 
 ## Files
 
-- `selenium_solution.md` - **WORKING SOLUTION** - Complete Selenium implementation with headless mode support
+- `selenium_solution.md` - **WORKING SOLUTION** - Complete Selenium implementation with headless mode support and PDF document processing
 - `website_analysis.md` - Analysis of handelsregister.de website structure changes
 - `alternative_solutions.md` - Summary of evaluated alternatives (Selenium solution implemented)
+- `development_environment.md` - **CRITICAL** - Virtual environment setup and dependency management requirements
 
 ## Project Structure
 
@@ -17,7 +18,7 @@ This directory contains notes about the handelsregister project.
 
 ## Current Status
 
-✅ **FULLY SOLVED** - The handelsregister functionality has been completely restored.
+✅ **FULLY SOLVED WITH PDF PROCESSING** - The handelsregister functionality has been completely restored and enhanced.
 
 **Solution**: `handelsregister_selenium.py` - Selenium-based script that works with the modern JavaScript-based handelsregister.de website.
 
@@ -29,8 +30,16 @@ This directory contains notes about the handelsregister project.
 - ✅ **Search Options**: Same CLI as original script
 - ✅ **Caching**: File-based result caching
 - ✅ **Error Handling**: Robust element waiting and fallbacks
+- ✅ **PDF Document Processing**: Download and extract structured data from company documents (`-pd` flag)
 
-**Status**: Production-ready with both debug and headless modes working reliably.
+**Status**: Production-ready with PDF document extraction fully functional and tested.
+
+**PDF Processing Capabilities**:
+
+- Downloads 'AD' (Aktuelle Daten) documents automatically
+- Extracts structured company information including HRB numbers, addresses, capital, management details
+- Outputs clean JSON format with both search results and extracted PDF data
+- Handles German legal document parsing with comprehensive regex patterns
 
 ## Key Technical Solutions
 

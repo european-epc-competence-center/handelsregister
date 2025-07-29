@@ -1,293 +1,206 @@
-# Handelsregister CLI
+# Handelsregister CLI - English Version
 
-> **✅ WORKING SOLUTION**: This project provides a command-line interface for searching the German company register (Handelsregister) using automated browser interaction.
+> **✅ WORKING SOLUTION**: A command-line interface for searching the German company register (Handelsregister) using automated browser interaction with Selenium.
 
-## Current Implementation
+## Background
 
-**File**: `handelsregister_selenium.py` - Selenium-based browser automation  
-**Status**: ✅ Fully functional  
-**Last Updated**: July 2025
+This project is based on the original [bundesAPI/handelsregister](https://github.com/bundesAPI/handelsregister) repository. However, the German company register website has undergone significant changes that made the original script non-functional. We have completely rewritten the tool using Selenium WebDriver to handle the modern JavaScript-based website architecture.
 
-### Quick Start
+**Credit**: This project builds upon the excellent work by [@LilithWittmann](https://github.com/LilithWittmann) and contributors at [bundesAPI/handelsregister](https://github.com/bundesAPI/handelsregister). The original API structure and CLI design inspired this implementation.
+
+**Technical Change**: The original implementation used HTTP requests and form parsing, but the new handelsregister.de website requires JavaScript and complex form interactions that necessitated a complete rewrite using Selenium browser automation.
+
+## Features
+
+- ✅ **Full Company Search**: Search German company register with various filter options
+- ✅ **PDF Document Processing**: Download and extract structured data from official company documents
+- ✅ **Headless Mode**: Silent automation (default) or visible browser for debugging
+- ✅ **Caching**: File-based result caching to improve performance and reduce server load
+- ✅ **Multiple Search Options**: Exact match, partial match, or contain all keywords
+- ✅ **JSON Output**: Structured data output for programmatic use
+- ✅ **Rate Limiting Compliance**: Respects the 60 requests/hour limit
+
+## Installation
+
+### Prerequisites
+
+- Python 3.7+
+- Chrome/Chromium browser
+- Internet connection
+
+### Quick Install
 
 ```bash
+# Clone this repository
+git clone https://github.com/your-username/handelsregister.git
+cd handelsregister
+
 # Install dependencies
 pip install -r requirements.txt
 
-# Search for a company
-python3 handelsregister_selenium.py -s "company name"
-
-# Debug mode (shows browser)
-python3 handelsregister_selenium.py -s "company name" -d
+# Selenium will automatically download the correct ChromeDriver
 ```
 
----
+### Dependencies
+
+All required packages are listed in `requirements.txt`:
+
+- `selenium` - Browser automation
+- `webdriver-manager` - Automatic ChromeDriver management
+- `beautifulsoup4` - HTML parsing
+- `PyPDF2` - PDF document processing
+- `requests` - HTTP requests for PDF downloads
+
+## Quick Start
+
+### Basic Company Search
+
+```bash
+# Search for a company (basic)
+python3 handelsregister_selenium.py -s "European EPC Competence Center"
+
+# Search with exact company name matching
+python3 handelsregister_selenium.py -s "European EPC Competence Center" -so exact
+
+# Search for companies containing any of the keywords
+python3 handelsregister_selenium.py -s "European EPC Competence Center" -so min
+```
+
+### Advanced Features
+
+```bash
+# Enable PDF document processing (downloads and extracts company data)
+python3 handelsregister_selenium.py -s "European EPC Competence Center" -pd
+
+# Debug mode (shows browser window for troubleshooting)
+python3 handelsregister_selenium.py -s "European EPC Competence Center" -d
+
+# Force fresh data (bypass cache)
+python3 handelsregister_selenium.py -s "European EPC Competence Center" -f
+
+# Combine multiple options
+python3 handelsregister_selenium.py -s "European EPC Competence Center" -so exact -pd -f
+```
+
+### PDF Processing Feature
+
+The `-pd` (or `--download-pdfs`) option enables automatic downloading and parsing of official company documents:
+
+- **Downloads**: Automatically fetches 'AD' (Aktuelle Daten/Current Data) documents
+- **Extracts**: Structured information including:
+  - Company registration numbers (HRB)
+  - Official addresses and postal codes
+  - Share capital and currency
+  - Management board details
+  - Registration dates
+- **Output**: Clean JSON format combining search results with extracted PDF data
+
+```bash
+# Example with PDF processing
+python3 handelsregister_selenium.py -s "European EPC Competence Center" -pd
+```
+
+**Sample Output with PDF Processing**:
+
+```json
+{
+  "search_results": [
+    {
+      "name": "European EPC Competence Center",
+      "registration": "Köln HRB 123456",
+      "address": "Sample Street 1, 12345 Köln"
+    }
+  ],
+  "pdf_data": {
+    "hrb_numbers": ["123456"],
+    "addresses": ["Sample Street 1, 12345 Köln"],
+    "share_capital": "50000000 EUR",
+    "management": ["John Doe (Vorstand)"]
+  }
+}
+```
+
+## Command Line Options
+
+| Option                 | Short | Description                                            |
+| ---------------------- | ----- | ------------------------------------------------------ |
+| `--schlagwoerter`      | `-s`  | **Required.** Search keywords (company name)           |
+| `--schlagwortOptionen` | `-so` | Search mode: `all`, `min`, or `exact` (default: `all`) |
+| `--download-pdfs`      | `-pd` | Download and process PDF documents                     |
+| `--debug`              | `-d`  | Show browser window (for debugging)                    |
+| `--force`              | `-f`  | Bypass cache and fetch fresh data                      |
+| `--help`               | `-h`  | Show help message                                      |
+
+### Search Options Explained
+
+- **`all`** (default): Company name must contain ALL search keywords
+- **`min`**: Company name must contain AT LEAST ONE search keyword
+- **`exact`**: Search for exact company name match
+
+## Technical Details
+
+### Browser Automation
+
+- Uses Selenium WebDriver with Chrome/Chromium
+- Automatic ChromeDriver management via `webdriver-manager`
+- Headless mode by default, visible mode available for debugging
+- Robust element waiting and error handling
+
+### Caching System
+
+- Results cached in `cache/` directory
+- Cache key based on search parameters
+- Use `-f` flag to force fresh data
+
+### Rate Limiting
+
+- Built-in delays to respect server limits
+- Complies with handelsregister.de usage policy (max 60 requests/hour)
+
+## Testing
+
+```bash
+# Run tests
+python -m pytest test_handelsregister.py -v
+
+# Run with coverage
+python -m pytest test_handelsregister.py --cov=handelsregister_selenium
+```
 
 ## Legal Information
 
-Das Handelsregister stellt ein öffentliches Verzeichnis dar, das im Rahmen des Registerrechts Eintragungen über die angemeldeten Kaufleute in einem bestimmten geografischen Raum führt.
-Eintragungspflichtig sind die im HGB, AktG und GmbHG abschließend aufgezählten Tatsachen oder Rechtsverhältnisse. Eintragungsfähig sind weitere Tatsachen, wenn Sinn und Zweck des Handelsregisters die Eintragung erfordern und für ihre Eintragung ein erhebliches Interesse des Rechtsverkehrs besteht.
+The German Commercial Register (Handelsregister) is a public directory that maintains records of registered merchants within a specific geographical area under commercial law. Entries are mandatory for facts or legal relationships conclusively listed in the HGB (German Commercial Code), AktG (Stock Corporation Act), and GmbHG (Limited Liability Company Act).
 
-Die Einsichtnahme in das Handelsregister sowie in die dort eingereichten Dokumente ist daher gemäß § 9 Abs. 1 HGB jeder und jedem zu Informationszwecken gestattet, wobei es unzulässig ist, mehr als 60 Abrufe pro Stunde zu tätigen (vgl. [Nutzungsordnung](https://www.handelsregister.de/rp_web/information.xhtml)). Die Recherche nach einzelnen Firmen, die Einsicht in die Unternehmensträgerdaten und die Nutzung der Handelsregisterbekanntmachungen ist kostenfrei möglich.
+Access to the commercial register and submitted documents is permitted for informational purposes according to § 9 Para. 1 HGB, with a limit of no more than 60 queries per hour (see [Terms of Use](https://www.handelsregister.de/rp_web/information.xhtml)). Individual company searches, access to company data, and use of commercial register announcements are free of charge.
 
-**Achtung:** Das Registerportal ist regelmäßig das Ziel automatisierter Massenabfragen. Den Ausführungen der [FAQs](https://www.handelsregister.de/rp_web/information.xhtml) zufolge erreiche die Frequenz dieser Abfragen sehr häufig eine Höhe, bei der die Straftatbestände der Rechtsnormen §§303a, b StGB vorliege. Mehr als 60 Abrufe pro Stunde widersprechen der Nutzungsordnung.
+**Warning**: The register portal is regularly targeted by automated mass queries. According to the [FAQs](https://www.handelsregister.de/rp_web/information.xhtml), the frequency of these queries often reaches levels that constitute criminal offenses under §§303a, b StGB. More than 60 queries per hour violate the terms of use.
 
-## Handelsregister
+## Contributing
 
-### Datenstruktur
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-**_URL:_** https://www.handelsregister.de/rp_web/erweitertesuche.xhtml
+## License
 
-Das gemeinsame Registerportal der Länder ermöglicht jeder und jedem die Recherche nach einzelnen Firmen zu Informationszwecken. Einträge lassen sich dabei über verschiedene Parameter im Body eines POST-request filtern:
+![AGPL Logo](https://www.gnu.org/graphics/agplv3-with-text-162x68.png)
 
-**Parameter:** _schlagwoerter_ (Optional)
+Copyright (C) 2025 European EPC Competence Center GmbH
 
-Schlagwörter (z.B. Test). Zulässige Platzhalterzeichen sind für die Suche nach genauen Firmennamen (siehe Parameter _schlagwortOptionen_) \* und ? - wobei das Sternchen für beliebig viele (auch kein) Zeichen steht, das Fragezeichen hingegen für genau ein Zeichen.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-**Parameter:** _schlagwortOptionen_ (Optional)
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 
-- 1
-- 2
-- 3
+You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-Schlagwortoptionen: 1=alle Schlagwörter enthalten; 2=mindestens ein Schlagwort enthalten; 3=den genauen Firmennamen enthalten.
+## Acknowledgments
 
-**Parameter:** _suchOptionenAehnlich_ (Optional)
+- Original implementation by [@LilithWittmann](https://github.com/LilithWittmann) and the [bundesAPI](https://github.com/bundesAPI) team
+- German Federal API initiative for making government data accessible
+- All contributors to the original project
 
-- true
+---
 
-true=ähnlich lautende Schlagwörter enthalten. Unter der Ähnlichkeitssuche ist die sogenannte phonetische Suche zu verstehen. Hierbei handelt es sich um ein Verfahren, welches Zeichenketten und ähnlich ausgesprochene Worte als identisch erkennt. Grundlage für die Vergleichsoperation ist hier die insbesondere im Bereich der öffentlichen Verwaltung angewandte sogenannte Kölner Phonetik.
-
-**Parameter:** _suchOptionenGeloescht_ (Optional)
-
-- true
-
-true=auch gelöschte Formen finden.
-
-**Parameter:** _suchOptionenNurZNneuenRechts_ (Optional)
-
-- true
-
-true=nur nach Zweigniederlassungen neuen Rechts suchen.
-
-**Parameter:** _btnSuche_ (Optional)
-
-- Suchen
-
-Button "Suchen"
-
-**Parameter:** _suchTyp_ (Optional)
-
-- n
-- e
-
-Suchtyp: n=normal; e=extended. Die normale Suche erlaubt eine Suche über den gesamten Registerdatenbestand der Länder anhand einer überschaubaren Anzahl von Suchkriterien. Die erweiterte Suche bietet neben den Auswahlkriterien der normalen Suche die selektive Suche in den Datenbeständen ausgewählter Länder, die Suche nach Rechtsformen und die Suche nach Adressen an.
-
-**Parameter:** _ergebnisseProSeite_ (Optional)
-
-- 10
-- 25
-- 50
-- 100
-
-Ergebnisse pro Seite.
-
-**Parameter:** _niederlassung_ (Optional)
-
-Niederlassung / Sitz. Zulässige Platzhalterzeichen sind \* und ? - wobei das Sternchen für beliebig viele (auch kein) Zeichen steht, das Fragezeichen hingegen für genau ein Zeichen.
-
-**Parameter:** _bundeslandBW_ (Optional)
-
-- on
-
-Einträge aus Baden-Württemberg
-
-**Parameter:** _bundeslandBY_ (Optional)
-
-- on
-
-Einträge aus Bayern
-
-**Parameter:** _bundeslandBE_ (Optional)
-
-- on
-
-Einträge aus Berlin
-
-**Parameter:** _bundeslandBR_ (Optional)
-
-- on
-
-Einträge aus Bradenburg
-
-**Parameter:** _bundeslandHB_ (Optional)
-
-- on
-
-Einträge aus Bremen
-
-**Parameter:** _bundeslandHH_ (Optional)
-
-- on
-
-Einträge aus Hamburg
-
-**Parameter:** _bundeslandHE_ (Optional)
-
-- on
-
-Einträge aus Hessen
-
-**Parameter:** _bundeslandMV_ (Optional)
-
-- on
-
-Einträge aus Mecklenburg-Vorpommern
-
-**Parameter:** _bundeslandNI_ (Optional)
-
-- on
-
-Einträge aus Niedersachsen
-
-**Parameter:** _bundeslandNW_ (Optional)
-
-- on
-
-Einträge aus Nordrhein-Westfalen
-
-**Parameter:** _bundeslandRP_ (Optional)
-
-- on
-
-Einträge aus Rheinland-Pfalz
-
-**Parameter:** _bundeslandSL_ (Optional)
-
-- on
-
-Einträge aus Saarland
-
-**Parameter:** _bundeslandSN_ (Optional)
-
-- on
-
-Einträge aus Sachsen
-
-**Parameter:** _bundeslandST_ (Optional)
-
-- on
-
-Einträge aus Sachsen-Anhalt
-
-**Parameter:** _bundeslandSH_ (Optional)
-
-- on
-
-Einträge aus Schleswig-Holstein
-
-**Parameter:** _bundeslandTH_ (Optional)
-
-- on
-
-Einträge aus Thüringen
-
-**Parameter:** _registerArt_ (Optional)
-
-- alle
-- HRA
-- HRB
-- GnR
-- PR
-- VR
-
-Registerart (Angaben nur zur Hauptniederlassung): alle; HRA; HRB; GnR; PR; VR.
-
-**Parameter:** _registerNummer_ (Optional)
-
-Registernummer (Angaben nur zur Hauptniederlassung).
-
-**Parameter:** _registerGericht_ (Optional)
-
-Registergericht (Angaben nur zur Hauptniederlassung). Beispielsweise D3201 für Ansbach
-
-**Parameter:** _rechtsform_ (Optional)
-
-- 1
-- 2
-- 3
-- 4
-- 5
-- 6
-- 7
-- 8
-- 9
-- 10
-- 12
-- 13
-- 14
-- 15
-- 16
-- 17
-- 18
-- 19
-- 40
-- 46
-- 48
-- 49
-- 51
-- 52
-- 53
-- 54
-- 55
-
-Rechtsform (Angaben nur zur Hauptniederlassung). 1=Aktiengesellschaft; 2=eingetragene Genossenschaft; 3=eingetragener Verein; 4=Einzelkauffrau; 5=Einzelkaufmann; 6=Europäische Aktiengesellschaft (SE); 7=Europäische wirtschaftliche Interessenvereinigung; 8=Gesellschaft mit beschränkter Haftung; 9=HRA Juristische Person; 10=Kommanditgesellschaft; 12=Offene Handelsgesellschaft; 13=Partnerschaft; 14=Rechtsform ausländischen Rechts GnR; 15=Rechtsform ausländischen Rechts HRA; 16=Rechtsform ausländischen Rechts HRb; 17=Rechtsform ausländischen Rechts PR; 18=Seerechtliche Gesellschaft; 19=Versicherungsverein auf Gegenseitigkeit; 40=Anstalt öffentlichen Rechts; 46=Bergrechtliche Gesellschaft; 48=Körperschaft öffentlichen Rechts; 49= Europäische Genossenschaft (SCE); 51=Stiftung privaten Rechts; 52=Stiftung öffentlichen Rechts; 53=HRA sonstige Rechtsformen; 54=Sonstige juristische Person; 55=Einzelkaufmann/Einzelkauffrau
-
-**Parameter:** _postleitzahl_ (Optional)
-
-Postleitzahl (Angaben nur zur Hauptniederlassung). Beispielsweise 90537 für Feucht. Zulässige Platzhalterzeichen sind \* und ? - wobei das Sternchen für beliebig viele (auch kein) Zeichen steht, das Fragezeichen hingegen für genau ein Zeichen.
-
-**Parameter:** _ort_ (Optional)
-
-Ort (Angaben nur zur Hauptniederlassung). Beispielsweise Feucht. Zulässige Platzhalterzeichen sind \* und ? - wobei das Sternchen für beliebig viele (auch kein) Zeichen steht, das Fragezeichen hingegen für genau ein Zeichen.
-
-**Parameter:** _strasse_ (Optional)
-
-Straße (Angaben nur zur Hauptniederlassung). Beispielsweise Teststraße 2. Zulässige Platzhalterzeichen sind \* und ? - wobei das Sternchen für beliebig viele (auch kein) Zeichen steht, das Fragezeichen hingegen für genau ein Zeichen.
-
-### Installation with poetry
-
-Example installation and execution with [poetry](https://python-poetry.org/):
-
-```commandline
-git clone https://github.com/bundesAPI/handelsregister.git
-cd handelsregister
-poetry install
-poetry run python handelsregister.py -s "deutsche bahn" -so all
-```
-
-Run tests:
-
-```commandline
-poetry run python -m pytest
-```
-
-### Command-line Interface
-
-Das CLI ist _work in progress_ und
-
-```
-usage: handelsregister.py [-h] [-d] [-f] -s SCHLAGWOERTER [-so {all,min,exact}]
-
-A handelsregister CLI
-
-options:
-  -h, --help            show this help message and exit
-  -d, --debug           Enable debug mode and activate logging
-  -f, --force           Force a fresh pull and skip the cache
-  -s SCHLAGWOERTER, --schlagwoerter SCHLAGWOERTER
-                        Search for the provided keywords
-  -so {all,min,exact}, --schlagwortOptionen {all,min,exact}
-                        Keyword options: all=contain all keywords; min=contain at least one
-                        keyword; exact=contain the exact company name.
-```
+**Note**: This is an independent implementation created due to website changes that broke the original tool. For the historical HTTP-based approach, see the original [bundesAPI/handelsregister](https://github.com/bundesAPI/handelsregister) repository.
