@@ -30,8 +30,8 @@ class PDFProcessor:
         """Download PDF documents for a company and extract information."""
         if not company.get('document_links'):
             if self.debug:
-                print(f"No document links found for {
-                      company.get('name', 'Unknown')}")
+                company_name = company.get('name', 'Unknown')
+                print(f"No document links found for {company_name}")
             return company
 
         company['extracted_data'] = {}
@@ -41,8 +41,8 @@ class PDFProcessor:
             if doc_link['type'] == 'AD':
                 try:
                     if self.debug:
-                        print(f"Processing {doc_link['type']} document for {
-                              company.get('name', 'Unknown')}")
+                        company_name = company.get('name', 'Unknown')
+                        print(f"Processing {doc_link['type']} document for {company_name}")
 
                     pdf_path = self._download_pdf_document(doc_link, company)
                     if pdf_path:
@@ -50,8 +50,8 @@ class PDFProcessor:
                         if extracted_data:
                             company['extracted_data'] = extracted_data
                             if self.debug:
-                                print(f"Successfully extracted data from {
-                                      doc_link['type']} document")
+                                doc_type = doc_link['type']
+                                print(f"Successfully extracted data from {doc_type} document")
                         break  # Stop after first successful AD document
                 except Exception as e:
                     print(f"Error processing document {doc_link['type']}: {e}")
@@ -379,8 +379,9 @@ class PDFProcessor:
                     data['management'] = []
                     for manager in managers:
                         # Combine last name and first name
-                        full_name = f"{manager[0].strip()}, {
-                            manager[1].strip()}"
+                        last_name = manager[0].strip()
+                        first_name = manager[1].strip()
+                        full_name = f"{last_name}, {first_name}"
                         data['management'].append({
                             'name': full_name,
                             'location': manager[2].strip(),

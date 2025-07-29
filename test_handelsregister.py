@@ -102,7 +102,8 @@ def test_pdf_download_european_epc():
     assert len(pdf_files_after) > len(
         pdf_files_before), "No PDF files were downloaded"
 
-    downloaded_files = [f for f in pdf_files_after if f not in pdf_files_before]
+    downloaded_files = [
+        f for f in pdf_files_after if f not in pdf_files_before]
     print(f"\nPDF files downloaded: {downloaded_files}")
 
     # Clean up downloaded PDF files after test

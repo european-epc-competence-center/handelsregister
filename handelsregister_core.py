@@ -130,8 +130,8 @@ class HandelsRegisterSelenium:
 
     def _process_pdf_documents(self, companies):
         """Process PDF documents for companies if requested."""
-        print(f"PDF download enabled, processing {
-              len(companies)} companies...")
+        company_count = len(companies)
+        print(f"PDF download enabled, processing {company_count} companies...")
 
         # Initialize PDF processor
         self.pdf_processor = PDFProcessor(
@@ -141,8 +141,8 @@ class HandelsRegisterSelenium:
 
         # Process each company
         for i, company in enumerate(companies):
-            print(f"Processing company {
-                  i+1}/{len(companies)}: {company.get('name', 'Unknown')}")
+            company_name = company.get('name', 'Unknown')
+            print(f"Processing company {i+1}/{len(companies)}: {company_name}")
             processed_company = self.pdf_processor.download_company_documents(
                 company)
             if processed_company:  # Only update if processing succeeded

@@ -128,8 +128,9 @@ class WebAutomation:
                     advanced_search_link.click()
                     time.sleep(3)
 
-                    self._debug_print(f"Advanced search page loaded: {
-                                      self.driver.title}")
+                    page_title = self.driver.title
+                    self._debug_print(
+                        f"Advanced search page loaded: {page_title}")
                     self._debug_print(
                         f"Current URL: {self.driver.current_url}")
 
@@ -228,8 +229,8 @@ class WebAutomation:
             search_field.send_keys(search_term)
 
             self._debug_print(f"Filled search field with: {search_term}")
-            self._debug_print(f"Field value after filling: {
-                              search_field.get_attribute('value')}")
+            field_value = search_field.get_attribute('value')
+            self._debug_print(f"Field value after filling: {field_value}")
 
             # Handle search options if available
             self._set_search_options(search_option)
@@ -322,5 +323,4 @@ class WebAutomation:
                 input_type = inp.get_attribute("type")
                 visible = inp.is_displayed()
                 enabled = inp.is_enabled()
-                print(f"  {input_type}: name='{name}' visible={
-                      visible} enabled={enabled}")
+                print(f"  {input_type}: name='{name}' visible={visible} enabled={enabled}")
